@@ -1,0 +1,56 @@
+{
+  "waypoints": {
+    "wp1": [210, 466],
+    "wp2": [209, 446],
+    "wp3": [201, 376],
+    "wp4": [198, 289],
+    "wp5": [194, 196],
+    "wp11": [937, 439],
+    "wp12": [863, 438],
+    "wp13": [742, 440],
+    "wp14": [416, 460],
+    "wp15": [150, 476],
+    "wp16": [150, 500]
+  },
+
+  "goals": {
+    "Home": [121, 476], 
+    "Library": [150, 402],
+    "Football court": [150, 628],
+
+    "Meeting Room": [200, 169],
+    "Restroom": [265, 167],
+    "Biological Lab": [423, 168], 
+    
+    "Lab CEPP": [630, 152], 
+    "Home 2": [944, 468],
+    "Chemistry Lab": [558, 448]
+  },  
+
+  "connections": {
+    "wp1": ["wp2", "wp14", "wp15"],
+    "wp2": ["wp1", "wp3"],
+    "wp3": ["wp2", "wp4"],
+    "wp4": ["wp3", "wp5"],
+    "wp5": ["wp4", "Meeting Room", "Restroom"],
+
+    "wp11": ["wp12", "Home 2"],
+    "wp12": ["wp11", "wp13"],
+    "wp13": ["wp12", "wp14", "Chemistry Lab"],
+    "wp14": ["wp1", "wp13", "Chemistry Lab"],
+    "wp15": ["wp1", "Home", "Library", "Football court"],
+    "wp16": ["Home", "Football court"],
+
+    "Home": ["wp16","wp15"],
+    "Library": ["wp15"],
+    "Football court": ["wp15"],
+
+    "Meeting Room": ["wp5", "Restroom"],
+    "Restroom": ["wp5", "Meeting Room", "Biological Lab"],
+    "Biological Lab": ["Restroom", "Lab CEPP"],
+    
+    "Lab CEPP": ["Biological Lab"],
+    "Home 2": ["wp11"],
+    "Chemistry Lab": ["wp13", "wp14"]
+  }
+}
