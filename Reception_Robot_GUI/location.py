@@ -1,9 +1,12 @@
 from PyQt6.QtWidgets import QWidget, QGraphicsScene, QGraphicsView, QGraphicsPolygonItem, QGraphicsPixmapItem
 from PyQt6.QtGui import QPixmap, QPolygonF, QWheelEvent, QPainter, QBrush, QPen, QColor
 from PyQt6.QtCore import QPointF, Qt, QTimer
+import os
 import yaml, json
 import numpy as np
 from datetime import datetime
+
+_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from pathplanning_fixedwp import PathPlanner
 from logger import PathLogger
@@ -42,9 +45,9 @@ class LocationTab(QWidget):
         if where not in VALID_MAP_IDS:
             where = DEFAULT_MAP_ID
         self.map_id = where
-        log_dir = f"Reception_Robot_GUI/log_path/{where}/"
-        wp_path = f"Reception_Robot_GUI/resources/Map/{where}_config_wp.json"
-        map_path = f"Reception_Robot_GUI/resources/Map/{where}_map.pgm"
+        log_dir = os.path.join(_DIR, "log_path", where, "")
+        wp_path = os.path.join(_DIR, "resources", "Map", f"{where}_config_wp.json")
+        map_path = os.path.join(_DIR, "resources", "Map", f"{where}_map.pgm")
         
         # Logger
         self.logger = PathLogger(log_dir=log_dir)
@@ -132,7 +135,7 @@ class LocationTab(QWidget):
     #               ROBOT GRAPHICS
     # ==========================================
     def create_robot(self):
-        pixmap = QPixmap("Reception_Robot_GUI/resources/Icons/robot.png")
+        pixmap = QPixmap(os.path.join(_DIR, "resources", "Icons", "robot.png"))
         pixmap = pixmap.scaled(30, 30, 
                              Qt.AspectRatioMode.KeepAspectRatio,
                              Qt.TransformationMode.SmoothTransformation)

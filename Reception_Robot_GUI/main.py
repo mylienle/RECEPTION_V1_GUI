@@ -335,11 +335,13 @@ class MainWindow(QMainWindow):
     def _shutdown_all_services(self):
         self.battery_manager.stop_battery_subscriber()
         self.attendance_manager.stop_attendance_subscriber()
-        self.location_manager.stop_location_subscriber()
+        if hasattr(self, "location_manager"):
+            self.location_manager.stop_location_subscriber()
         self.velocity_manager.stop_velocity_subscriber()
         self.arrival_manager.stop_arrival_subscriber()
         self.telemetry_manager.stop_telemetry_subscriber()
-        self.goal_manager.stop_goal_subscriber()
+        if hasattr(self, "goal_manager"):
+            self.goal_manager.stop_goal_subscriber()
 
     def closeEvent(self, event):
         print("Closinggg...")
