@@ -111,8 +111,8 @@ class MainWindow(QMainWindow):
         # list user
         self.registered_users = [
             {
-            "username": "hoaiphu",
-            "password": "123",
+            "username": "1",
+            "password": "1",
             "fullname": "Admin User",
             "phone": "0123456789",
             "verify": "fablab"

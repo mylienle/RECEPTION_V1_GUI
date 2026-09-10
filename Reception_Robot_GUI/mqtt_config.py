@@ -6,7 +6,7 @@ Tập trung quản lý các thông số MQTT để tránh hard-code ở nhiều 
 class MQTTConfig:
     """Class chứa tất cả cấu hình MQTT"""
     
-    MQTT_HOST = "45.117.177.157" #127.0.0.1 #192.168.0.130
+    MQTT_HOST = "103.179.190.242" #127.0.0.1 #192.168.0.130
     MQTT_PORT = 1883
     MQTT_KEEPALIVE = 60
     MQTT_USERNAME = "client"

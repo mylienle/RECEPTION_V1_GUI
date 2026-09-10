@@ -15,7 +15,7 @@ import time
 
 # MQTT Broker Configuration
 MQTT_CONFIG = {
-    "host": "45.117.177.157",  # New MQTT broker
+    "host": "103.179.190.242",
     "port": 1883,
     "username": "client",
     "password": "viam1234",
