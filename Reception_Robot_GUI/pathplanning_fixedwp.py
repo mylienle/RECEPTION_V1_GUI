@@ -146,6 +146,10 @@ class PathPlanner:
                 except: pass
                 self._no_path_text_item = None
             
+            # Đã snap thì robot đang đứng tại node đó: đi thẳng từ pose tới node kế tiếp
+            if is_snapped and len(path_node_names) > 1:
+                path_node_names = path_node_names[1:]
+
             path_coords = [start_px]
             for name in path_node_names:
                 if name == "START_VIRTUAL":
