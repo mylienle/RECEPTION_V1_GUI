@@ -7,15 +7,15 @@
     "wp5": [850, 305],
     "wp9": [790, 305],
     "wp11": [580, 791],
-    "wp12": [850, 385],
+    "wp12": [850, 375],
     "wp13": [742, 300],
-    "Href": [850, 385]
+    "Href": [850, 375]
   },
   "goals": {
     "Table_1": [864, 488],
     "Restroom": [717, 505],
     "Water intake": [740, 269],
-    "Home": [825, 385],
+    "Home": [828, 375],
     "Chemistry hall": [850, 269],
     "Robotics lab": [464, 792],
     "Stairs": [820, 727],
@@ -40,5 +40,7 @@
     "Stairs": ["wp1", "wp2"],
     "Table2": ["wp5"],
     "Table_1": ["wp3"]
-}
+  },
+  "hidden_waypoints": [],
+  "route_excluded_waypoints": []
 }

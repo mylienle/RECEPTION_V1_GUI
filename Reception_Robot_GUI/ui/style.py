@@ -2,9 +2,15 @@
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QTimer
 import os
+import sys
 
 def load_stylesheet(filename):
-    full_path = os.path.join(os.path.dirname(__file__), filename)
+    if getattr(sys, "frozen", False):
+        base_dir = os.path.join(sys._MEIPASS, "ui")
+    else:
+        base_dir = os.path.dirname(__file__)
+
+    full_path = os.path.join(base_dir, filename)
     with open(full_path, "r", encoding="utf-8") as f:
         return f.read()
 

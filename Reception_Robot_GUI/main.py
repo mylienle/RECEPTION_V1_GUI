@@ -103,6 +103,9 @@ class MainWindow(QMainWindow):
 
         self.last_goal = None
         self.HOME_NAME = "Home"   
+        self._navigation_active = False
+        self._is_processing_arrival = False
+        self._robot_dashboard_initialized = False
 
         # Rotate 
         self.home_rotation_timer = QTimer()
@@ -152,9 +155,10 @@ class MainWindow(QMainWindow):
         self.telemetry_manager.start_telemetry_subscriber()
 
         # ===== INIT UI =====
-        self.ui.stackedWidget.setCurrentWidget(self.ui.login)
-        self.ui.Page.setCurrentWidget(self.ui.Page_signin)
-        self.ui.Dashboard.setCurrentWidget(self.ui.Dashboard_signin)
+        # This terminal is operated directly, so it must start on the robot
+        # dashboard instead of requiring an unused login screen.
+        self.ui.stackedWidget.setCurrentWidget(self.ui.robot)
+        self.ui.stackedWidget_2.setCurrentWidget(self.ui.page_control_2)
 
         # ===== LOGIN EVENTS =====
         self.ui.Signin_btn_signup.clicked.connect(lambda: self.ui.Page.setCurrentWidget(self.ui.Page_signup))
@@ -169,33 +173,20 @@ class MainWindow(QMainWindow):
         self.ui.logout_2.clicked.connect(self._handle_logout)
         self.ui.mode_select_2.currentTextChanged.connect(self.handle_mode_switch)
 
+        # Login is disabled in kiosk mode, so do not expose controls that
+        # would otherwise navigate back to the removed login flow.
+        self.ui.logout.hide()
+        self.ui.logout_2.hide()
+
+        self._add_cancel_navigation_button()
+        self._open_robot_dashboard()
+
     # ================= LOGIN =================
     def _handle_login(self):
         success = handle_login(self.ui, self.registered_users, main_window=self)
         if success:
             self.selected_map_id = run_map_selection_dialog(self)
-
-            self.ui.stackedWidget.setCurrentWidget(self.ui.robot)
-            self.ui.stackedWidget_2.setCurrentWidget(self.ui.page_control_2)
-
-            # self.admin_camera_tab = CameraTab(self.ui.camera_2, self.shared_browser)
-    
-            self.admin_location_tab = LocationTab(self.ui.view_map_2, self.selected_map_id)
-            self.admin_location_tab.logger.cte_signal.connect(self.telemetry_tab.update_cte)
-
-            self.add_path_planning_buttons(self.admin_location_tab)
-
-            self.arrival_manager.subscriber_thread.arrival_update.connect(
-                lambda arrived: self.handle_arrival_signal(arrived)
-            )
-
-            self.location_manager = LocationManager(self.ui)
-            self.location_manager.location_tab = self.admin_location_tab
-            self.location_manager.start_location_subscriber()
-
-            self.goal_manager = GoalManager(self.ui)
-            self.goal_manager.location_tab = self.admin_location_tab
-            self.goal_manager.start_goal_subscriber()
+            self._open_robot_dashboard()
 
     def _handle_signup(self):
         success = handle_signup(self.ui, self.registered_users, main_window=self)
@@ -218,16 +209,45 @@ class MainWindow(QMainWindow):
 
     # ================= LOGOUT =================
     def _handle_logout(self):
-        msgbox = QMessageBox(self)
-        msgbox.setWindowTitle("Confirm Logout")
-        msgbox.setText("Are you sure you want to log out?")
-        msgbox.setIcon(QMessageBox.Icon.Question)
-        msgbox.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msgbox.setStyleSheet(QMSGBOX_STYLE)
+        # There is no login screen in kiosk mode.  Keep the operator in the
+        # dashboard and clear a pending navigation instead.
+        self.cancel_navigation()
 
-        if msgbox.exec() == QMessageBox.StandardButton.Yes:
-            self._shutdown_all_services()
-            self.ui.stackedWidget.setCurrentWidget(self.ui.login)
+    def _open_robot_dashboard(self):
+        """Create the robot-only dashboard once and make it the active screen."""
+        self.ui.stackedWidget.setCurrentWidget(self.ui.robot)
+        self.ui.stackedWidget_2.setCurrentWidget(self.ui.page_control_2)
+
+        if self._robot_dashboard_initialized:
+            return
+
+        self.admin_location_tab = LocationTab(self.ui.view_map_2, self.selected_map_id)
+        self.admin_location_tab.logger.cte_signal.connect(self.telemetry_tab.update_cte)
+        self.add_path_planning_buttons(self.admin_location_tab)
+
+        self.arrival_manager.subscriber_thread.arrival_update.connect(self.handle_arrival_signal)
+
+        self.location_manager = LocationManager(self.ui)
+        self.location_manager.location_tab = self.admin_location_tab
+        self.location_manager.start_location_subscriber()
+
+        self.goal_manager = GoalManager(self.ui)
+        self.goal_manager.location_tab = self.admin_location_tab
+        self.goal_manager.start_goal_subscriber()
+        self._robot_dashboard_initialized = True
+
+    def _add_cancel_navigation_button(self):
+        """Add the cancellation control to the waiting/navigation status page."""
+        self.cancel_navigation_button = QPushButton("Cancel", self.ui.widget_27)
+        self.cancel_navigation_button.setMinimumHeight(44)
+        self.cancel_navigation_button.setStyleSheet(
+            "QPushButton { background-color: #C62828; color: white; border: none; "
+            "border-radius: 10px; font-size: 16px; font-weight: bold; padding: 8px 24px; }"
+            "QPushButton:hover { background-color: #8E0000; }"
+        )
+        self.cancel_navigation_button.clicked.connect(self.cancel_navigation)
+        self.cancel_navigation_button.hide()
+        self.ui.horizontalLayout_29.addWidget(self.cancel_navigation_button)
 
     # ================= UI =================
     def handle_page_switch(self, text):
@@ -265,6 +285,12 @@ class MainWindow(QMainWindow):
 
     # ================= GOAL =================
     def send_goal(self, place: str):
+        self._navigation_active = True
+        self._is_processing_arrival = False
+        self.arrival_manager.reset_arrival_state()
+        if hasattr(self, "goal_manager"):
+            self.goal_manager.start_navigation()
+
         goal_json = json.dumps(place)
         print(f"Goal: {goal_json}")
 
@@ -275,19 +301,45 @@ class MainWindow(QMainWindow):
         self.last_goal = place
         self.auto_return_timer.stop()  # reset timer
         self.home_rotation_timer.stop()
+        self.cancel_navigation_button.show()
+
+    def cancel_navigation(self):
+        """Return the GUI to Idle and ignore MQTT events from the cancelled trip."""
+        self.auto_return_timer.stop()
+        self.home_rotation_timer.stop()
+        self._navigation_active = False
+        self._is_processing_arrival = False
+        self.last_goal = None
+        self.arrival_manager.reset_arrival_state()
+
+        if hasattr(self, "goal_manager"):
+            self.goal_manager.cancel_navigation()
+        if hasattr(self, "admin_location_tab"):
+            self.admin_location_tab.logger.stop_logging()
+            self.admin_location_tab.reset_navigation()
+
+        self.ui.robot_status.setText("Idle")
+        self.ui.robot_status_2.setText("Idle")
+        self.ui.label_log.setText("Navigation cancelled")
+        self.ui.robot_mode_2.setCurrentWidget(self.ui.page_6)
+        self.cancel_navigation_button.hide()
 
     # ================= ARRIVAL =================
     def handle_arrival_signal(self, arrived):
-        if arrived == 1 and hasattr(self, 'admin_location_tab'):
+        if arrived and self._navigation_active and hasattr(self, 'admin_location_tab'):
             if getattr(self, '_is_processing_arrival', False):
                 return
             self._is_processing_arrival = True
+            self._navigation_active = False
             QTimer.singleShot(3000, lambda: setattr(self, '_is_processing_arrival', False))
 
             self.ui.robot_mode_2.setCurrentWidget(self.ui.page_6)
             self.admin_location_tab.logger.stop_logging()
             self.ui.robot_status.setText("Idle")
             self.ui.robot_status_2.setText("Idle")
+            self.cancel_navigation_button.hide()
+            if hasattr(self, "goal_manager"):
+                self.goal_manager.cancel_navigation()
 
             # ===== START TIMER =====
             if self.last_goal != self.HOME_NAME:

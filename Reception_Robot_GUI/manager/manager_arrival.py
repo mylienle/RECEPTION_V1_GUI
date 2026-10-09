@@ -11,24 +11,29 @@ ARRIVAL_CONFIG = MQTTConfig.get_config("arrival")
 class ArrivalManager(BaseManager):
     def __init__(self, ui):
         super().__init__(ui, ArrivalSubscriberThread, ARRIVAL_CONFIG)
-        self.arrival = "false"
-        self.has_arrived = False  # Thêm cờ để chỉ emit 1 lần
+        self.arrival = False
+        self.has_arrived = False
 
     def _connect_signals(self):
         self.subscriber_thread.arrival_update.connect(self.handle_arrival_update)
 
     def start_arrival_subscriber(self):
         self.start_subscriber()
-        self.has_arrived = False  # Reset khi bắt đầu lại
+        self.reset_arrival_state()
 
     def stop_arrival_subscriber(self):
         self.stop_subscriber()
 
+    def reset_arrival_state(self):
+        """Clear the arrival state when a navigation is cancelled or restarted."""
+        self.arrival = False
+        self.has_arrived = False
+
     def handle_arrival_update(self, arrived):
-        if arrived == "true" and not self.has_arrived:
+        # ArrivalSubscriberThread emits bools.  Do not emit this same signal again:
+        # emitting it recursively made the state impossible to reset reliably.
+        self.arrival = bool(arrived)
+        if self.arrival:
             self.has_arrived = True
-            self.arrival = arrived
-            self.subscriber_thread.arrival_update.emit(arrived)  # Chỉ emit 1 lần
-        elif arrived == "false":
-            self.arrival = arrived
-            # Không emit lại nếu đang false
+        else:
+            self.has_arrived = False

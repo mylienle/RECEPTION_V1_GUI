@@ -19,6 +19,10 @@ class PathPlanner:
         self.waypoints = config['waypoints']
         self.goals = config['goals']
         self.connections = config['connections']
+        self.hidden_waypoints = set(config.get('hidden_waypoints', []))
+        # These nodes are intentionally omitted from the route sent to the
+        # robot.  Unlike hidden_waypoints, this affects graph construction.
+        self.route_excluded_waypoints = set(config.get('route_excluded_waypoints', []))
         
         # Hợp nhất tất cả các điểm
         self.all_nodes = {**self.waypoints, **self.goals}
@@ -65,9 +69,29 @@ class PathPlanner:
     def _build_simple_graph(self):
         """Xây dựng Node Graph: Các nút là điểm, cạnh là khoảng cách vật lý"""
         self.graph = nx.DiGraph() 
-        
+
+        def visible_successors(node, visited=None):
+            """Follow configured edges through intentionally skipped nodes."""
+            visited = set() if visited is None else visited
+            for neighbor in self.connections.get(node, []):
+                if neighbor in visited:
+                    continue
+                if neighbor not in self.all_nodes:
+                    print(f"[WARNING] Ignoring connection to unknown node: {neighbor}")
+                    continue
+                if neighbor in self.route_excluded_waypoints:
+                    yield from visible_successors(neighbor, visited | {neighbor})
+                else:
+                    yield neighbor
+
         for u in self.connections:
-            for v in self.connections.get(u, []):
+            if u not in self.all_nodes or u in self.route_excluded_waypoints:
+                continue
+            for v in visible_successors(u, {u}):
+                if v == u:
+                    continue
+                # This is a deliberate direct segment: the configuration has
+                # explicitly opted to omit the intermediate waypoint.
                 dist = np.linalg.norm(np.array(self.all_nodes[u]) - np.array(self.all_nodes[v]))
                 self.graph.add_edge(u, v, weight=dist)
 
@@ -87,7 +111,14 @@ class PathPlanner:
         SNAP_THRESHOLD = 8.0
         
         # 1. LOGIC SNAP
-        closest_node = min(self.all_nodes.keys(), key=lambda n: np.linalg.norm(np.array(start_px) - np.array(self.all_nodes[n])))
+        routable_nodes = [
+            node for node in self.all_nodes
+            if node not in self.route_excluded_waypoints
+        ]
+        if not routable_nodes:
+            self._show_no_path_warning(start_px)
+            return None
+        closest_node = min(routable_nodes, key=lambda n: np.linalg.norm(np.array(start_px) - np.array(self.all_nodes[n])))
         min_dist = np.linalg.norm(np.array(start_px) - np.array(self.all_nodes[closest_node]))
         is_snapped = min_dist <= SNAP_THRESHOLD
 
@@ -138,6 +169,8 @@ class PathPlanner:
 
     def _draw_fixed_points(self):
         for name, pos in self.waypoints.items():
+            if name in self.hidden_waypoints:
+                continue
             self._add_marker(pos[0], pos[1], name, QColor(0, 255, 0), 4)
         for name, pos in self.goals.items():
             self._add_marker(pos[0], pos[1], name, QColor(255, 200, 0), 6)
