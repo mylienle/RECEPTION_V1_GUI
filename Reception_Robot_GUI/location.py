@@ -162,7 +162,8 @@ class LocationTab(QWidget):
         self.robot_item.setPos(px - self.robot_w/2, py - self.robot_h/2)
 
         # --- Vẽ mũi tên hướng robot ---
-        heading_deg = -theta if abs(theta) > 2 * np.pi else -np.degrees(theta)
+        # theta từ MQTT robot/location luôn là độ (location_publisher.py)
+        heading_deg = -theta
         self._update_heading_indicator_arrow(px, py, heading_deg)
         # Quay hình robot theo hướng thực tế
         self.robot_item.setRotation(heading_deg + self.robot_icon_forward_offset_deg)
@@ -212,6 +213,17 @@ class LocationTab(QWidget):
             self.map_scene.removeItem(item)
         self.trajectory_items.clear()
 
+    def reset_navigation(self):
+        """Xóa path/trajectory của chuyến bị Cancel để GUI về trạng thái ban đầu."""
+        self.planner.clear_path()
+        self.clear_trajectory()
+        self.trajectory_points = []
+        self.trajectory_times = []
+        self.last_planned_path = []
+        self.planned_path = []
+        self.plan_points = []
+        self.full_plan_points = []
+
     def update_trajectory(self):
         if len(self.trajectory_points) < 2: return
         for item in self.trajectory_items:
@@ -250,10 +262,7 @@ class LocationTab(QWidget):
 
             # 3. Lấy vị trí và hướng hiện tại của robot
             cur_theta_raw = float(self.last_position[2])
-            if abs(cur_theta_raw) > 2 * np.pi: # Nếu người dùng gõ số > 6.28 (vd: 90, 180)
-                cur_theta_rad = np.deg2rad(cur_theta_raw)
-            else:
-                cur_theta_rad = cur_theta_raw
+            cur_theta_rad = np.deg2rad(cur_theta_raw)  # theta MQTT luôn là độ
             
             # Tính vector heading hiện tại của robot
             heading_vec = np.array([np.cos(cur_theta_rad), np.sin(cur_theta_rad)], dtype=float)
@@ -276,7 +285,8 @@ class LocationTab(QWidget):
     def _handle_auto_rotation(self):
         """robot turn to face the first waypoint when starting navigation"""
         try:
-            curx, cury, theta_rad = self.last_position
+            curx, cury, theta_deg = self.last_position
+            theta_rad = np.deg2rad(theta_deg)
             
             wp_next = None
             for wp in self.full_plan_points:
