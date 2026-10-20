@@ -19,7 +19,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QTimer   
 
 from ui.font_configurator import apply_custom_fonts
-from ui.style import QMSGBOX_STYLE
 from ui.main_ui import Ui_MainWindow
 from user import handle_login, handle_signup
 from attendance import AttendanceTab
