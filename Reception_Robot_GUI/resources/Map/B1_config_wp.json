@@ -4,6 +4,7 @@
     "wp1": [822, 780],
     "wp2": [808, 525],
     "wp3": [865, 466],
+    "wp4": [864, 510],
     "wp5": [850, 305],
     "wp9": [790, 305],
     "wp11": [580, 791],
@@ -24,22 +25,23 @@
   "connections": {
     "wp0": ["wp1", "wp11"],
     "wp1": ["wp0", "wp2", "Stairs"],
-    "wp2": ["wp1", "wp3", "Stairs", "Restroom"],
-    "wp3": ["wp2", "wp12", "Restroom", "Table_1"],
+    "wp2": ["wp1", "wp4", "Stairs"],
+    "wp3": ["wp12", "Table_1"],
+    "wp4": ["Table_1", "wp2", "Restroom"],
     "wp5": [ "wp12", "Chemistry hall","Table2"],
     "wp9": ["wp5", "wp13", "Chemistry hall"],
     "wp11": ["wp0", "Robotics lab"],
     "wp12": ["wp3", "wp5", "Home"],
     "wp13": ["wp9", "wp5", "Water intake"],
     
-    "Restroom": ["wp2", "wp3"],
+    "Restroom": ["wp4"],
     "Water intake": ["wp13", "Chemistry hall"],
     "Home": ["wp12"],
     "Chemistry hall": ["wp5", "wp12", "Water intake"],
     "Robotics lab": ["wp11"],
     "Stairs": ["wp1", "wp2"],
     "Table2": ["wp5"],
-    "Table_1": ["wp3"]
+    "Table_1": ["wp3", "wp4"]
   },
   "hidden_waypoints": [],
   "route_excluded_waypoints": []
