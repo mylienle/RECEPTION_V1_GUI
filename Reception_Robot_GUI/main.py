@@ -38,6 +38,7 @@ from robot_telemetry import PlotTelemetry
 
 from MQTT.publisher_goal import GoalPublisher 
 from MQTT.publisher_angle import AnglePublisher
+from MQTT.publisher_drive_mode import DriveModePublisher
 from MQTT.mqtt_publisher_config import get_topic
 
 
@@ -178,6 +179,7 @@ class MainWindow(QMainWindow):
         self.ui.logout_2.hide()
 
         self._add_cancel_navigation_button()
+        self._add_drive_mode_button()
         self._open_robot_dashboard()
 
     # ================= LOGIN =================
@@ -247,6 +249,34 @@ class MainWindow(QMainWindow):
         self.cancel_navigation_button.clicked.connect(self.cancel_navigation)
         self.cancel_navigation_button.hide()
         self.ui.horizontalLayout_29.addWidget(self.cancel_navigation_button)
+
+    def _add_drive_mode_button(self):
+        """Temporary drive-mode switch: the robot's gamepad cannot tell the robot PC its mode.
+
+        The robot is launched in mode 2 (autonomous). SELECT x3 on the gamepad still toggles the
+        board by itself, so this label can be wrong after that; pressing the button re-sends.
+        """
+        self.drive_mode_button = QPushButton(self.ui.widget_2)
+        self.drive_mode_button.setMinimumSize(180, 40)
+        self.drive_mode_button.clicked.connect(self.toggle_drive_mode)
+        self.ui.horizontalLayout_3.addWidget(self.drive_mode_button)
+        self._set_drive_mode_label(2)
+
+    def _set_drive_mode_label(self, mode):
+        self.drive_mode = mode
+        gamepad = mode == 1
+        self.drive_mode_button.setText("Mode: Gamepad" if gamepad else "Mode: Auto")
+        self.drive_mode_button.setStyleSheet(
+            "QPushButton { background-color: %s; color: white; border: none; "
+            "border-radius: 13px; font-size: 16px; font-weight: bold; padding: 6px 16px; }"
+            % ("#EF6C00" if gamepad else "#2E7D32")
+        )
+
+    def toggle_drive_mode(self):
+        """Gamepad mode pauses the robot's route; Auto resumes it from where the robot is."""
+        mode = 2 if self.drive_mode == 1 else 1
+        DriveModePublisher().publish_mode(mode)
+        self._set_drive_mode_label(mode)
 
     # ================= UI =================
     def handle_page_switch(self, text):
