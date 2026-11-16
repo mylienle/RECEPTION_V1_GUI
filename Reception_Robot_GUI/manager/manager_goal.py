@@ -14,10 +14,11 @@ class GoalManager(BaseManager):
         self.ui = ui 
         self.goal = None
         self.location_tab = location_tab
-        self.navigation_enabled = False
 
     def _connect_signals(self):
-        self.subscriber_thread.goal_update.connect(self.handle_goal_update)
+        # robot/goal no longer starts planning: every GUI on the broker received it, so a second
+        # GUI could plan the same goal and send the robot a second copy of the route
+        pass
 
     def start_goal_subscriber(self):
         self.start_subscriber()
@@ -25,19 +26,14 @@ class GoalManager(BaseManager):
     def stop_goal_subscriber(self):
         self.stop_subscriber()
 
-    def start_navigation(self):
-        """Accept the goal message published for the current navigation run."""
-        self.navigation_enabled = True
+    def start_navigation(self, name):
+        """Plan the goal picked on this GUI and send its route to the robot."""
+        self.handle_goal_update(name)
 
     def cancel_navigation(self):
-        """Ignore late MQTT goal messages from a cancelled navigation run."""
-        self.navigation_enabled = False
         self.goal = None
 
     def handle_goal_update(self, name):
-        if not self.navigation_enabled:
-            return
-
         if name:
             self.goal = name
             self.location_tab.plan_path(name)

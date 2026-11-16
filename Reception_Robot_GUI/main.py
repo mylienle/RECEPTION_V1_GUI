@@ -233,7 +233,6 @@ class MainWindow(QMainWindow):
 
         self.goal_manager = GoalManager(self.ui)
         self.goal_manager.location_tab = self.admin_location_tab
-        self.goal_manager.start_goal_subscriber()
         self._robot_dashboard_initialized = True
 
     def _add_cancel_navigation_button(self):
@@ -304,7 +303,7 @@ class MainWindow(QMainWindow):
         self._is_processing_arrival = False
         self.arrival_manager.reset_arrival_state()
         if hasattr(self, "goal_manager"):
-            self.goal_manager.start_navigation()
+            self.goal_manager.start_navigation(place)
 
         goal_json = json.dumps(place)
         print(f"Goal: {goal_json}")
