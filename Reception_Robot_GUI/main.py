@@ -355,10 +355,8 @@ class MainWindow(QMainWindow):
             if hasattr(self, "goal_manager"):
                 self.goal_manager.cancel_navigation()
 
-            # ===== START TIMER =====
-            if self.last_goal != self.HOME_NAME:
-                print("⏱ Start 3min auto return timer")
-                self.auto_return_timer.start(180000)
+            # Auto return Home disabled: with two GUIs open both started this timer and both sent
+            # the robot a Home route at the same time
 
             # If we just arrived at Home, compute deviation using real heading vs Home->wp15 (0-degree reference).
             if self.last_goal == self.HOME_NAME:
