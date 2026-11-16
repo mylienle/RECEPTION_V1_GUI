@@ -274,7 +274,10 @@ class MainWindow(QMainWindow):
         if text == "Manual":
             self.ui.robot_mode_2.setCurrentWidget(self.ui.page_5)
         elif text == "Auto":
-            self.ui.robot_mode_2.setCurrentWidget(self.ui.page_6)
+            # A paused route resumes in Auto: keep the goal buttons hidden (show the route status
+            # and Cancel) until arrival or Cancel, so a new goal is not picked mid-route by mistake
+            self.ui.robot_mode_2.setCurrentWidget(
+                self.ui.page_log if self._navigation_active else self.ui.page_6)
 
     # ================= BUTTON =================
     def add_path_planning_buttons(self, location_tab):
